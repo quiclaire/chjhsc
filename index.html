@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>114技藝競賽家政群筆試</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans TC) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FFFBF0; /* Creamy background */
+        }
+        
+        /* Macaron Color Palette Utilities */
+        .bg-macaron-pink { background-color: #FFC4C4; }
+        .bg-macaron-blue { background-color: #B2EBF2; }
+        .bg-macaron-green { background-color: #C8E6C9; }
+        .bg-macaron-yellow { background-color: #FFF9C4; }
+        .bg-macaron-purple { background-color: #E1BEE7; }
+
+        .hover-macaron-pink:hover { background-color: #FF9E9E; }
+        .hover-macaron-blue:hover { background-color: #80DEEA; }
+        
+        .text-macaron-dark { color: #5D4037; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FFC4C4;
+            border-radius: 5px;
+        }
+
+        /* Option Selection Styles */
+        .option-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .option-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .option-card.selected {
+            background-color: #B2EBF2; /* Macaron Blue */
+            border-color: #00BCD4;
+            font-weight: bold;
+        }
+
+        /* Print Styles */
+        @media print {
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .page-break { page-break-before: always; }
+            #result-screen { display: block !important; }
+            #quiz-screen, #home-screen { display: none !important; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="text-gray-700 h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-macaron-pink p-4 shadow-md no-print">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-white drop-shadow-md">
+                <i class="fas fa-utensils mr-2"></i>114技藝競賽家政群筆試
+            </h1>
+            <div id="timer-display" class="hidden text-xl font-mono bg-white px-4 py-1 rounded-full text-macaron-dark shadow-inner">
+                <i class="fas fa-stopwatch mr-1"></i> <span id="time-value">00:00</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto p-4 overflow-y-auto" id="app-container">
+        
+        <!-- SCREEN 1: HOME / SETUP -->
+        <div id="home-screen" class="max-w-2xl mx-auto bg-white rounded-3xl shadow-xl p-8 mt-10 border-4 border-macaron-blue">
+            <div class="text-center mb-8">
+                <div class="inline-block p-4 rounded-full bg-macaron-yellow mb-4">
+                    <i class="fas fa-book-open text-4xl text-yellow-600"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-macaron-dark mb-2">準備開始測驗</h2>
+                <p class="text-gray-500">請輸入您的資料並設定測驗範圍</p>
+                <p id="loading-status" class="text-sm text-green-600 mt-2 font-bold hidden">題目載入成功！共 <span id="total-q-loaded">0</span> 題</p>
+            </div>
+
+            <form id="setup-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-lg font-bold text-macaron-dark mb-2">學號</label>
+                        <input type="text" id="student-id" required class="w-full p-3 text-lg border-2 border-gray-200 rounded-xl focus:border-macaron-pink focus:outline-none transition-colors" placeholder="請輸入學號">
+                    </div>
+                    <div>
+                        <label class="block text-lg font-bold text-macaron-dark mb-2">姓名</label>
+                        <input type="text" id="student-name" required class="w-full p-3 text-lg border-2 border-gray-200 rounded-xl focus:border-macaron-pink focus:outline-none transition-colors" placeholder="請輸入姓名">
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded-xl border-2 border-gray-100">
+                    <label class="block text-lg font-bold text-macaron-dark mb-4">測驗設定</label>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-600 mb-2">題目數量</label>
+                        <div class="flex gap-3 flex-wrap">
+                            <button type="button" class="q-count-btn flex-1 py-2 rounded-lg border-2 border-macaron-green hover:bg-macaron-green transition-colors font-bold text-gray-600" data-count="20">20題</button>
+                            <button type="button" class="q-count-btn flex-1 py-2 rounded-lg border-2 border-macaron-green bg-macaron-green text-white font-bold shadow-md" data-count="50">50題</button>
+                            <button type="button" class="q-count-btn flex-1 py-2 rounded-lg border-2 border-macaron-green hover:bg-macaron-green transition-colors font-bold text-gray-600" data-count="100">100題</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-600 mb-2">起始題號 (1-<span id="max-q-label">250</span>)</label>
+                            <input type="number" id="start-range" value="1" min="1" class="w-full p-2 border rounded-lg text-center font-mono text-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-600 mb-2">結束題號</label>
+                            <input type="number" id="end-range" value="250" class="w-full p-2 border rounded-lg text-center font-mono text-lg">
+                        </div>
+                    </div>
+                    <div class="mt-2 text-right">
+                        <button type="button" id="select-all-btn" class="text-sm text-blue-500 hover:underline">全選範圍 (1-<span id="max-q-label-2">250</span>)</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-macaron-pink hover:bg-pink-400 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg transform transition-transform hover:scale-105">
+                    <i class="fas fa-play mr-2"></i> 開始測驗
+                </button>
+            </form>
+        </div>
+
+        <!-- SCREEN 2: QUIZ -->
+        <div id="quiz-screen" class="hidden max-w-4xl mx-auto h-full flex flex-col">
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-6">
+                <div id="progress-bar" class="bg-macaron-green h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="flex-grow bg-white rounded-3xl shadow-xl p-6 md:p-10 border-t-8 border-macaron-purple flex flex-col overflow-y-auto relative">
+                <div class="flex justify-between items-start mb-6 border-b pb-4">
+                    <span class="text-macaron-purple font-bold text-xl">Q<span id="q-current-num">1</span> / <span id="q-total-num">50</span></span>
+                    <span class="bg-gray-100 text-gray-500 px-3 py-1 rounded text-sm">題號: <span id="real-q-id">--</span></span>
+                </div>
+
+                <h3 id="question-text" class="text-2xl md:text-3xl font-bold text-gray-800 mb-8 leading-relaxed">
+                    題目載入中...
+                </h3>
+
+                <div id="options-container" class="space-y-4 w-full max-w-2xl mx-auto">
+                    <!-- Options will be injected here -->
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="flex justify-between items-center mt-6 pb-6">
+                <button id="prev-btn" class="bg-gray-300 hover:bg-gray-400 text-white text-xl font-bold py-3 px-8 rounded-xl shadow disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-chevron-left mr-2"></i> 上一題
+                </button>
+                
+                <button id="next-btn" class="bg-macaron-blue hover:bg-blue-300 text-blue-900 text-xl font-bold py-3 px-8 rounded-xl shadow">
+                    下一題 <i class="fas fa-chevron-right ml-2"></i>
+                </button>
+
+                <button id="submit-btn" class="hidden bg-red-400 hover:bg-red-500 text-white text-xl font-bold py-3 px-8 rounded-xl shadow animate-pulse">
+                    <i class="fas fa-check-circle mr-2"></i> 繳交試卷
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: RESULTS -->
+        <div id="result-screen" class="hidden max-w-5xl mx-auto pb-10">
+            <!-- Summary Card -->
+            <div class="bg-white rounded-3xl shadow-xl p-8 mb-8 border-t-8 border-macaron-pink no-break">
+                <div class="text-center">
+                    <h2 class="text-4xl font-bold text-macaron-dark mb-2">測驗結果</h2>
+                    <p class="text-gray-500 text-lg mb-6"><span id="res-student-id"></span> <span id="res-student-name"></span></p>
+                    
+                    <div class="flex justify-center items-center gap-10 mb-8">
+                        <div class="text-center">
+                            <div class="text-gray-500 mb-1">得分</div>
+                            <div id="res-score" class="text-6xl font-black text-red-500">0</div>
+                        </div>
+                        <div class="w-px h-16 bg-gray-300"></div>
+                        <div class="text-center">
+                            <div class="text-gray-500 mb-1">耗時</div>
+                            <div id="res-time" class="text-3xl font-bold text-gray-700">00:00</div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap justify-center gap-4 no-print">
+                        <button onclick="downloadResultsPDF()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg shadow transition-colors">
+                            <i class="fas fa-file-pdf mr-2"></i> 列印/另存 PDF
+                        </button>
+                        <button onclick="downloadCSV()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow transition-colors">
+                            <i class="fas fa-file-csv mr-2"></i> 下載 CSV
+                        </button>
+                        <button onclick="location.reload()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg shadow transition-colors">
+                            <i class="fas fa-redo mr-2"></i> 重新測驗
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Review -->
+            <div class="bg-white rounded-3xl shadow-xl p-8">
+                <h3 class="text-2xl font-bold text-gray-700 mb-6 border-l-4 border-macaron-blue pl-4">答題詳解</h3>
+                <div id="review-container" class="space-y-6">
+                    <!-- Review items injected here -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Raw Data Storage (Hidden) -->
+    <script>
+        // Data extracted from the provided PDF text
+        // Cleaned up slightly for JS string format
+        const RAW_DATA = `
+"(4)","1","一般化妝品之用途不得宣稱,具有下列哪種效果?(1)掩飾體臭(2)修飾容貌(3)潤澤肌膚(4)瘦身塑身。"
+"(2)","2","染髮劑、燙髮劑是屬於哪一類化妝品?(1)一般化妝品(2)含藥化妝品(3)化妝品色素(4)洗髮用化妝品。"
+"(4)","3","急救箱內藥品(1)可以用多久就用多久(2)等要用時再去買(3)用完就算了(4)應有標籤並注意使用期限隨時補換。"
+"(4)","4","急救箱要放在(1)高高的地方(2)上鎖的櫃子(3)隨便(4)固定且方便取用的地方。"
+"(4)","5","下列情況何者最為急迫(1)休克(2)大腿骨折(3)肘骨骨折(4)大動脈出血。"
+"(4)","6","咳嗽或打噴嚏時(1)順其自然(2)面對顧客(3)以手遮住口鼻(4)以手帕或衛生紙遮住口鼻。"
+"(4)","7","改善環境衛生是(1)衛生機關(2)環保機關(3)清潔隊員(4)人人都有的責任。"
+"(3)","8","對待顧客的態度最忌(1)熱誠的服務(2)溫馨的微笑(3)漠不關心(4)輕聲細語。"
+"(3)","9","登革熱之傳染源為(1)三斑家蚊(2)環蚊(3)埃及斑蚊或白線斑蚊(4)鼠蚤。"
+"(2)","10","肺結核的預防接種為(1)沙賓疫苗(2)卡介苗(3)免疫球蛋白(4)三合一混合疫苗。"
+"(2)","11","火災報警應打 (1) 112 (2) 119 (3) 104(4)105"
+"(1)","12","含維生素A酸之面霜,係用於(1)預防面皰(2)美白皮膚(3)保養皮膚(4)止汗臭。"
+"(1)","13","下列成分,何者屬於水溶性?(1)天然維他命C(2)天然維他命A(3)天然維他命E(4)綿羊油"
+"(1)","14","預防登革熱的方法,營業場所插花容器及冰箱底盤至少應(1)一週(2)三週(3)一個月(4)二週洗刷一次。"
+"(3)","15","一位品德與修養良好的廚師是指其人(1)很會做名菜(2)服裝儀容整(3)待人和氣、能與同事協調合作(4)很有交際手腕。"
+"(4)","16","廚師應有(1)追求財富(2)保持現狀(3)積極求名(4)終身學習之認知,切不可視增進自己專業知能之學習為畏途"
+"(2)","17","一位令人尊敬的廚師應具備的職業道德為(1)經常參加比賽、爭取名聲(2)守時守分、注重服務精神(3)利潤第一、品質其次(4)力求表現突顯自我。"
+"(4)","18","碰到挑剔的顧客,有職業道德的廚師應(1)多加點調味料,使菜餚味重(2)偷工減料(3)表示材料不足,無法供應(4)用心做菜、加強服務、爭取顧客認同。"
+"(4)","19","一位敬業的廚師應有什麼心態?(1)將菜餚做得色、香、味俱全即好(2)只要將廚房環境之衛生做好(3)多花時間與主管攀交情最重要(4)看重自己的每一項工作,並熱忱投入與廚師相關之工作"
+"(1)","20","廚師的工作主要是製備餐食給顧客食用,因此工作中最需要注意的是(1)衛生習慣(2)烹調技巧(3)溝通能力(4)儀態表現"
+"(3)","21","廚師的衛生習慣最重要,因此進入廚房的第一件事是洗滌(1)抹布(2)廚具(3)雙手(4)食物材料。"
+"(4)","22","何者為優秀的中餐烹調廚師?(1)不計成本也要讓顧客滿意者(2)有主見又主觀者(3)以營業利潤考量為主者(4)顧及經營者及消費者的需求者。"
+"(1)","23","依照衛生法規相關規定,廚師工作前、如廁後,正確的洗手程序為(1)濕搓沖捧擦(2)濕捧搓沖擦(3)濕捧搓擦沖(4)搓濕捧沖擦。"
+"(2)","24","油炸食物後應(1)將油倒回新油容器中(2)將油渣過濾掉,另倒在乾淨容器中(3)將殘渣留在油內以增加香味(4)將油倒棄於水槽內。"
+"(3)","25","雙手最容易帶菌,從業人員要經常洗手,尤其是(1)工作前,大小便後(2)工作前,大小便前(3)工作前後,大小便後(4)工作後,大小便後。"
+"(3)","26","收斂性化妝水的pH值為(1)弱鹼性(2)中性(3)弱酸性(4)鹼性"
+"(2)","27","痤瘡(青春痘)的治療是誰的工作?(1)美容從業人員(2)皮膚科醫師(3)皮膚科醫師、美容從業人員均可(4)有經驗者即可。"
+"(2)","28","主廚的工作責任是管理廚務,將食材物盡其用,為的是要達到(1)創意(2)控制成本(3)消耗(4)研發新菜的目的。"
+"(4)","29","野生動物保育法規定不得宰殺野生動物(1)不宰殺但可以購買(2)偷偷的吃,不要被發現就可以(3)不要標示動物名稱,就可以販賣(4)宰殺與販賣都是違法行為。"
+"(1)","30","「粉蒸肉」之材料宜用(1)五花肉(2)里肌肉(3)豬蹄(4)豬頭肉"
+"(3)","31","一位好的廚師在烹調時對炸油如發現顏色太深、粘度太高應如何處理?(1)快點使用完(2)加一些新油比較不會浪費(3)集中回收(4)直接倒入水溝。"
+"(3)","32","食品加工產品已過期,如何處理?(1)重新貼上新標籤(2)去除原標示日期(3)銷毀處理(4)丟掉可惜,可以回收換包裝即可。"
+"(2)","33","欲檢查瓦斯漏氣的地方,最好的檢查方法為(1)以火柴點火(2)塗抹肥皂水(3)以鼻子嗅察(4)以點火槍點火測試。"
+"(2)","34","煮飯時加入何種材料可使米飯較鬆香且容易拌炒(1)鹽(2)沙拉油(3)醬油(4)香油。"
+"(4)","35","「河粉」有很多種名稱,下列何者為非?(1)粿仔條(2)粄條(3)面帕粄(4)拉麵條。"
+"(1)","36","平日所吃的白飯是指哪一類的稻米?(1)蓬萊米(2)在萊米(3)長糯米(4)圓糯米。"
+"(1)","37","為了保持茄子的色澤,可以使用下列哪一種烹調法?(1)炸(2)煎(3)滷(4)烤。"
+"(4)","38","下列何者不是保持蔬菜鮮綠的方法?(1)加鹼(2)加小蘇打(3)大火川燙(4)加酸。"
+"(1)","39","在水中加入何種調味料可以保持綠色蔬菜的翠綠?(1)鹽(2)醋(3)糖(4)油。"
+"(3)","40","將蔬菜打成蔬菜汁飲用時哪一種維生素較容易流失?(1)維生素A(2)維生素B(3)維生素C(4)類胡蘿蔔素。"
+"(1)","41","芥菜中含有較多的何種色素?(1)葉綠素(2)花青素(3)類胡蘿蔔素(4)茄紅素。"
+"(1)","42","新鮮蔬菜烹調時火候應(1)旺火快炒(2)微火慢炒(3)旺火慢炒(4)微火快炒。"
+"(4)","43","下列何者不屬於蔬菜?(1)豌豆夾(2)皇帝豆(3)四季豆(4)綠豆"
+"(1)","44","一般生鮮蔬菜之前處理宜採用(1)先洗後切(2)先切後洗(3)先泡後洗(4)洗、切、泡、醃無一定的順序"
+"(1)","45","下列何者屬於辛香料?(1)蔥、薑、蒜(2)醬油、八角(3)鹽、味精(4)蔥、胡椒。"
+"(2)","46","食物安全的供應溫度是指(1) 5~60℃ (2)60℃以上、7℃以下(3) 100℃以上、40℃以下(4)40~100℃。"
+"(4)","47","下列有關食物的儲藏何者為錯誤(1)新鮮屋鮮奶存放在5℃以下的冷藏室(2)冰淇淋儲放在-18℃以下的冷凍庫(3)利樂包(保久乳)妝乳品可存放在乾貨庫房中(4)開罐後的奶粉為防變質宜整罐儲放在冰箱中"
+"(4)","48","食物烹調的原則宜為(1)調味料愈多愈好(2)味精用量為食物重量的百分之五(3)運用簡便的高湯塊(4)原味烹調。"
+"(1)","49","涼拌小黃瓜是屬於(1)生拌(2)熟拌(3)熱拌(4)溫拌"
+"(2)","50","涼拌韭菜是屬於(1)生拌(2)熟拌(3)熱拌(4)生熟混拌"
+"(3)","51","將生的食材或經過處理、熟製後的食材,與調味料拌勻,即可食用的菜餚,此烹調技法稱為(1)煮(2)川(3)拌(4)炒"
+"(2)","52","利用水蒸氣的溫度,使食材熟透的一種烹調技巧稱為(1)煮(2)蒸(3)拌(4)炒。"
+"(4)","53","為使食材具有特殊香味的烹調法,以小火慢煮的方式,稱為(1)煮(2)川(3)炒(4)滷。"
+"(2)","54","三色蛋所使用的三種蛋是(1)鴨蛋、滷蛋、鹹蛋(2)雞蛋、皮蛋、鹹蛋(3)雞蛋、皮蛋、滷蛋(4)鴨蛋、雞蛋、鹹蛋。"
+"(2)","55","以發酵方法製作泡菜,其酸味是來自於醃漬時的(1)碳酸菌(2)乳酸菌(3)酵母菌(4)酒釀。"
+"(2)","56","添加相同比例量的水於糯米中,烹煮後的圓糯米比尖糯米之質地(1)較硬(2)較軟(3)較鬆散(4)相同。"
+"(1)","57","含有筋性的澱粉類(1)麵粉(2)玉米粉(3)太白粉(4)甘藷粉。"
+"(2)","58","下列何種澱粉以手捻之有滑感?(1)麵粉(2)太白粉(3)泡達粉(4)在來米粉。"
+"(3)","59","花生與下列何種食物性質差異最大?(1)核桃(2)腰果(3)綠豆(4)杏仁。"
+"(2)","60","製作包子之麵粉宜選用(1)低筋麵粉(2)中筋麵粉(3)高筋麵粉(4)澄粉。"
+"(1)","61","麵糰添加下列何種調味料可促進其延展性?(1)鹽(2)胡椒粉(3)糖(4)醋。"
+"(4)","62","黏性最大的米為(1)蓬萊米(2)在來米(3)胚芽米(4)糯米"
+"(3)","63","製作油飯時,為使其口感較佳,較常選用(1)蓬萊米(2)在來米(3)長糯米(4)圓糯米"
+"(4)","64","銀芽是指(1)綠豆芽(2)黃豆芽(3)苜蓿芽(4)去掉頭尾的綠豆芽"
+"(3)","65","下列何者為較新鮮的蛋?(1)蛋殼光滑者(2)氣室大的蛋(3)濃厚蛋白量較多者(4)蛋白彎曲度小的。"
+"(2)","66","製作蒸蛋時,添加何種調味料將有助於增加其硬度?(1)蔗糖(2)鹽(3)醋(4)酒。"
+"(2)","67","下列哪一種為天然膨大劑?(1)發粉(2)酵母(3)小蘇打(4)阿摩尼亞。"
+"(4)","68","如貯藏不當易產生黃麴毒素的食品是(1)蛋(2)肉(3)魚(4)花生。"
+"(3)","69","因存放日久而發芽以致產生茄靈毒素,不能食用之食物是(1)洋蔥(2)胡蘿蔔(3)馬鈴薯(4)毛豆。"
+"(2)","70","下列食品何者含澱粉質較多?(1)荸薺(2)馬鈴薯(3)蓮藕(4)豆薯(刈薯)"
+"(3)","71","菜名中含有「雙冬」二字,常見的是哪二項材料?(1)冬瓜、冬筍(2)冬菇、冬菜(3)冬菇、冬筍(4)冬菇、冬瓜"
+"(2)","72","買雞蛋時宜選購(1)蛋殼光潔平滑者(2)蛋殼乾淨且粗糙者(3)蛋殼無破損即可(4)蛋殼有特殊顏色者"
+"(1)","73","選購皮蛋時宜選(1)蛋殼表面與生蛋一樣,無黑褐色斑點者(2)蛋殼有許多粗糙斑點者(3)蛋殼光滑即好,有無斑點皆不重要(4)價格便宜者。"
+"(2)","74","豆腐是以(1)花豆(2)黃豆(3)綠豆(4)紅豆為原料製作而成的"
+"(3)","75","經烹煮後顏色較易保持綠色的蔬菜為(1)小白菜(2)空心菜(3)芥蘭菜(4)青江菜。"
+"(3)","76","鹹蛋一般是以(1)火雞蛋(2)鵝蛋(3)鴨蛋(4)鴕鳥蛋醃漬而成"
+"(1)","77","採購蔬果應考慮先之要項為(1)生產季節與市場價格(2)形狀與顏色(3)冷凍品與冷藏品(4)重量與品名。"
+"(3)","78","空心菜是夏季盛產的蔬菜屬於(1)根莖類(2)花果類(3)葉菜類(4)莖球類。"
+"(4)","79","菜名中有「發財」二字的菜,其所用材料通常會有(1)香菇(2)金針(3)蝦米(4)髮菜。"
+"(1)","80","封罐良好的罐頭食品保存約(1) 3年(2) 5年(3) 7年(4)9年"
+"(2)","81","乾燥金針容易有(1)一氧化硫(2)二氧化硫(3)氯化鈉(4)氫氧化鈉殘留過量的問題,所以挑選金針時,以有優良金針標誌者為佳"
+"(3)","82","魚類的脂肪分佈在(1)皮下(2)魚背(3)腹部(4)魚肉為多"
+"(1)","83","儲藏冷凍肉類的溫度應控制在(1) -18℃ (2) -5℃ (3) 0℃ (4)5℃以下。"
+"(1)","84","避免購買具有土味的淡水魚,其分辨方法可由(1)魚鰓的黏膜細胞(2)魚身(3)魚鰭(4)魚尾所散發的味道得知。"
+"(3)","85","螃蟹最肥美之季節為(1)春(2)夏(3)秋(4)冬季"
+"(3)","86","「紅燒下巴」的下巴是指(1)豬頭(2)舌頭(3)魚頭(4)猴頭菇"
+"(4)","87","一般作為「紅燒划水」的材料,是使用草魚的(1)頭部(2)背部(3)腹部(4)尾部"
+"(1)","88","正常的新鮮肉類色澤為(1)鮮紅色(2)暗紅色(3)灰紅色(4)褐色"
+"(1)","89","雞肉中最嫩的部分是(1)雞柳(2)雞腿肉(3)雞胸肉(4)雞翅膀。"
+"(3)","90","炸豬排時宜使用豬的(1)後腿肉(2)前腿肉(3)里肌肉(4)五花肉"
+"(3)","91","烹調豬肉一定要熟透,其主要原因是為了防止何種物質危害健康?(1)血水(2)硬筋(3)寄生蟲(4)抗生素。"
+"(3)","92","一般深色的肉比淺色的肉所含(1)礦物質(2)蛋白質(3)鐵質(4)磷質為多。"
+"(2)","93","為使製作的獅子頭(肉丸)質脆味鮮,最適宜添加下列何物來改變肉的質地?(1)豆腐(2)荸薺(3)蓮藕(4)牛蒡。"
+"(1)","94","肉牛屠體中,肉質較硬,適合長時間燉煮的部位為(1)腱子肉(2)肋條(3)腓力(4)沙朗。"
+"(2)","95","下列魚類何者屬於海水魚?(1)草魚(2)鯧魚(3)鯽魚(4)鰱魚"
+"(1)","96","深色醬油較適用於何種烹調法(1)紅燒(2)炒(3)蒸(4)煎"
+"(2)","97","皮脂分泌過少的皮膚是(1)油性皮膚(2)乾性皮膚(3)中性皮膚(4)混合性皮膚。"
+"(3)","98","皮膚所須之營養素由(1)神經(2)肌肉(3)血液(4)脂肪供應"
+"(1)","99","皮膚有體溫調節的作用,受熱時血管會(1)擴張(2)收縮(3)散發(4)分泌。"
+"(2)","100","患者抱怨頭痛,暈眩皮膚乾而紅,體溫高達攝氏41度者為(1)暈倒(2)中暑(3)中毒(4)癲癇。"
+"(2)","101","何者不是修眉的用具?(1)安全刀片(2)尖頭的剪刀(3)圓頭的剪刀(4)眉鋏(鑷子)。"
+"(3)","102","狐臭是下列哪種腺體的分泌物在細菌的分解下所產生的異臭?(1)皮脂腺(2)小汗腺(3)頂漿腺(4)淋巴腺"
+"(2)","103","圓型臉的眉型應畫成(1)直線眉(2)角度眉(3)短眉(4)下垂眉為宜。"
+"(1)","104","柔軟性化妝水的功能為(1)清潔毛孔(2)收斂毛孔(3)殺菌作用(4)防止過敏。"
+"(3)","105","適合初次化妝者使用的粉底是(1)粉條(2)水粉餅(3)粉底液(4)蓋斑膏。"
+"(4)","106","適用於日間的保養品,應備有(1)滋養的作用(2)補充油質的作用(3)防止乾燥的作用(4)防止紫外線的作用。"
+"(2)","107","無刺激性、具安撫鎮靜作用的保養品較適用於(1)乾性(2)敏感性(3)中性(4)油性皮膚。"
+"(3)","108","蒸臉噴霧有殺菌、消炎作用,是因噴霧中含有(1)雙氧(2)過氧(3)臭氧(4)酸氧。"
+"(4)","109","冬季化妝,粉底選擇首應注意那些特性(1)耐水(2)耐汗(3)防曬(4)滋潤成分高。"
+"(4)","110","表皮層中最新的細胞是產生在(1)角質層(2)顆粒層(3)有棘層(4)基底層。"
+"(1)","111","皮膚能將外界刺激傳遞到大腦,是因皮膚有(1)神經(2)血管(3)肌肉(4)脂肪。"
+"(4)","112","純色是指色彩裡沒有(1)青色(2)紅色(3)綠色(4)白或黑色的成份。"
+"(4)","113","能平衡皮膚酸鹼值、補充角質水分的是(1)乳液(2)面霜(3)面膜(4)化妝水。"
+"(2)","114","油性皮膚欲改善臉部出油狀態宜加強(1)柔軟化妝水(2)收斂化妝水(3)滋養化妝水(4)美白化妝水。"
+"(4)","115","化妝品含有SPF物質,具備(1)收斂作用(2)營養作用(3)美白作用(4)防曬作用。"
+"(3)","116","皮膚最薄的部位是(1)手掌(2)腳底(3)眼瞼(4)額頭"
+"(2)","117","護理青春痘時,應著重(1)按摩(2)清潔、消炎(3)擠壓(4)去角質。"
+"(2)","118","不適合全臉使用的是(1)粉條(2)蓋斑膏(3)粉膏(4)蜜粉"
+"(3)","119","標準臉寬是(1)沒有一定標準(2)大約15cm左右(3)自身5個眼睛的寬度(4)5個嘴的寬度"
+"(2)","120","化妝水類的保養品,其使用方法是以(1)海綿(2)化妝棉(3)粉撲(4)面紙沾取使用。"
+"(3)","121","全臉油膩,尤其在鼻子周圍及臉部中央部位更多油分,容易脫妝、毛孔易堵塞、易變黑的是屬於?(1)混合性肌膚(2)中性肌膚(3)油性肌膚(4)面皰肌膚"
+"(1)","122","按摩霜最主要功能為(1)協助按摩時,手部的滑動順暢(2)去除角質細胞(3)預防小皺紋提早出現(4)平衡酸鹼度"
+"(4)","123","人的皮膚可藉由陽光合成哪一個維生素?(1)維生素A(2)維生素B(3)維生素C(4)維生素D。"
+"(1)","124","角質層為死細胞,含有多少水分是最理想?(1)10~20%(2) 20~25% (3) 25~30% (4)30~40%。"
+"(4)","125","在皮膚構造下而含有大量的脂肪細胞,可當能量來消耗並保護皮膚是哪一層?(1)基底層(2)顆粒層(3)表皮層(4)皮下組織"
+"(1)","126","表皮中唯一可以分裂複製的細胞是哪一層?(1)基底層(2)透明層(3)有棘層(4)角質層"
+"(2)","127","正確洗手可有效預防何種疾病之傳染?(1)登革熱(2)腸病毒(3)肺結核(4)破傷風。"
+"(3)","128","按摩時應該使用(1)清潔霜(2)隔離霜(3)按摩霜(4)潔膚乳"
+"(2)","129","美容從業人員工作前,應以(1)自來水(2)肥皂水(3)碘酒(4)蒸餾水先清潔雙手。"
+"(3)","130","卸妝時,應由下列哪個部位先行卸妝?(1)雙頰(2)額頭(3)眼、唇(4)下顎。"
+"(4)","131","按摩時常用的手指是(1)中指、小指(2)食指、中指(3)小指、無名指、指腹(4)中指、無名指。"
+"(2)","132","按摩力量宜輕柔的是(1)額頭(2)眼睛(3)太陽穴(4)臉頰。"
+"(3)","133","為加強眼部立體感,可在眉骨處抹上何種眼影?(1)暗色(2)灰色(3)明亮色(4)褐色。"
+"(2)","134","塗抹粉底的化妝用具是(1)粉撲(2)海綿(3)面紙(4)化妝棉"
+"(1)","135","藉著水份分泌及蒸發來散發身體熱量的構造是(1)小汗腺(2)皮脂腺(3)大汗腺(4)胸腺。"
+"(1)","136","下列有關化妝品的使用與保存,何者錯誤?(1)為了避免污染,通常以手指直接取用(2)化妝品的保存宜避免日光直射(3)變質的化妝品,應馬上丟棄,不要繼續使用(4)使用化妝品,若引起皮膚炎或其他症狀,宜速求診於皮膚科醫師。"
+"(3)","137","知性化妝的唇膏宜選用(1)粉紅色(2)橘紅色(3)褐色系(4)玫瑰色。"
+"(2)","138","毛髮突出於皮膚表面的部份稱為(1)毛囊(2)毛幹(3)毛根(4)毛球。"
+"(3)","139","人體熱量有80%靠(1)肺(2)鼻子(3)皮膚(4)唇來發散,以調節體溫。"
+"(2)","140","粉膏擦勻後,為固定化妝宜再使用(1)腮紅按勻(2)蜜粉按勻(3)粉條按勻(4)粉霜按勻。"
+"(1)","141","下列何處皮脂腺較發達?(1)鼻子(2)手掌(3)腳底(4)臉頰"
+"(3)","142","短眉型給人有(1)溫柔感(2)成熟感(3)年輕感(4)嫵媚感"
+"(1)","143","身體沒有皮脂腺的部位是(1)手掌(2)背部(3)臉部(4)腰部"
+"(2)","144","健康皮膚的pH值約為(1) 7 (2) 5~6 (3) 3~4(4)9~10"
+"(3)","145","「T」字部位是指額頭,鼻子及(1)臉頰(2)太陽穴(3)下巴(4)眼眶。"
+"(1)","146","金黃色系的化妝,不包含(1)白色(2)黃色(3)棕色(4)金色"
+"(2)","147","紅色的對比色是(1)黃色(2)綠色(3)藍色(4)紫色"
+"(1)","148","能表現高雅、神秘、女性美的眼影是何種顏色?(1)紫色(2)咖啡色(3)綠色(4)橘色。"
+"(2)","149","指甲美化之色彩應配合(1)鼻影(2)唇膏(3)眼線(4)睫毛的顏色"
+"(1)","150","在粉底的色調中,使用後可使臉頰顯得豐滿的顏色是(1)明色(2)暗色(3)基本色(4)綠色。"
+"(1)","151","可產生嬌美、溫柔感覺的色彩是(1)粉紅色(2)紅色(3)褐色(4)綠色。"
+"(2)","152","色彩中具警惕作用的是(1)紅色(2)黃色(3)黑色(4)綠色"
+"(3)","153","色相環中,深藍色是屬於(1)暖色(2)中間色(3)寒色(4)無彩色"
+"(3)","154","指壓是利用(1)指尖(2)指壓器(3)指腹(4)手掌來施壓"
+"(1)","155","基本唇型的正確描畫,首先應決定哪一個部位?(1)唇峰(2)唇角(3)左上唇(4)右下唇。"
+"(4)","156","正常頭髮的彈性在乾燥時可以拉長(1) 1/2 (2) 1/3 (3) 1/4 (4) 1/5"
+"(1)","157","左右兩手均需會用的工具是(1)吹風機(2)削刀(3)剪刀(4)電推剪。"
+"(3)","158","直吹內彎髮型吹風口很重要,應與髮片呈(1) 60° (2) 80° (3) 90° (4) 10°,其效果是使髮片蓬鬆。"
+"(1)","159","整髮時塗髮膠的主要功用是(1)固定持久(2)保養頭髮(3)柔軟頭髮(4)增加光澤。"
+"(2)","160","編髮時之頭髮狀態(1)乾燥(2)微溼(3)捲曲(4)蓬鬆才能達到編髮之效果。"
+"(3)","161","可分為正編與反編的是(1)一股編法(2)二股編法(3)三股編法(4)四股編法。"
+"(2)","162","以下何項的吹風機角度可固定髮型(1)0°~90°(2)90°~135°(3)100°~120°(4)180°~360°。"
+"(2)","163","在整髮技巧中最常使用的是(1)手捲(2)吹風(3)髮筒捲法(4)電鉗技術。"
+"(3)","164","使用髮筒時頭髮應保持(1)鬆弛(2)歪斜(3)緊直(4)捲曲,已使其完成後效果最好。"
+"(3)","165","吹髮時,頭髮的蓬鬆度與所持(1)吹風機大小(2)梳子好壞(3)梳子角度(4)吹風機好壞有密切關係。"
+"(1)","166","直吹內彎髮型時,分區髮片要挑(1)水平線(2)斜線(3)曲線(4)弧線。"
+"(2)","167","電鉗的溫度應在下列何者上試驗?(1)髮梢(2)薄紙(3)濕布(4)手指。"
+"(4)","168","剪髮時決定長度的第一片髮束是(1)分區線(2)水平線(3)垂直線(4)引導線。"
+"(1)","169","基本剪髮時分線需與裁剪線(1)平行(2)垂直(3)放射(4)斜角裁剪。"
+"(2)","170","臉型較小者,要讓臉型有向外延伸的效果,捲髮方向宜採(1)向心式往前捲法(2)離心式向後捲法(3)上捲法(4)下捲法。"
+"(2)","171","髮筒往下的捲法能使頭髮呈現(1)直髮(2)內彎或波浪(3)外翹(4)無效果。"
+"(2)","172","一個成功的電鉗轉動動作是以(1)手臂(2)手指(3)手肘(4)手掌來轉動把手向前或向後。"
+"(3)","173","如電鉗太熱時,在使用前應先將其(1)加溫(2)超溫(3)冷卻(4)定溫。"
+"(1)","174","髮質是細柔或粗糙,所使用電鉗的溫度(1)不同(2)相同(3)不一定(4)隨自己意思"
+"(2)","175","電鉗使用完畢應(1)置於工作檯方便取用(2)置於安全地方冷卻(3)隨意置放(4)立即收進工具箱。"
+"(1)","176","電鉗是利用導熱圓棒產生(1)熱(2)水(3)煙(4)火,使頭髮的構造在瞬間內改變"
+"(2)","177","使用電鉗整髮時頭髮應是(1)半溼(2)乾的(3)溼的(4)不一定"
+"(3)","178","電鉗操作形成的波浪或鬈曲是(1)永久性(2)半永久性(3)暫時性(4)視情況而定的。"
+"(2)","179","使用電鉗時,電鉗夾髮處離頭皮至少要有(1)4公分(2) 2.5公分(3) 6公分(4)1.5公分。"
+"(4)","180","理想的洗髮溫度為(1) 23°C~27°C (2) 27°C~32°C (3) 32°C~37°C (4) 38°C~42°C。"
+"(1)","181","髮捲大小與波浪度關係(1)髮捲大波浪度大(2)髮捲大波浪度小(3)髮捲小波浪度大(4)沒關係。"
+"(2)","182","沖水時應以(1)指尖(2)指腹(3)手心(4)手刀做N型摩擦"
+"(1)","183","含藥洗髮劑標示(1)使頭髮變黑(2)清潔頭髮(3)潤髮(4)去頭皮屑是違法產品。"
+"(3)","184","編髮最重視(1)底盤寬度(2)取髮角度(3)底盤的寬度與取髮角度(4)頭髮軟硬。"
+"(1)","185","為配合編髮的方便須使用何種梳子? (1)尖尾梳(2)小關刀(3)排骨梳(4)九排梳。"
+"(2)","186","染髮或冷燙的時間最好相隔(1)一天(2)一星期(3)同時(4)一個月。"
+"(4)","187","編結時應注意(1)順著髮向(2)順著髮根(3)順著髮流(4)順著頭形貼緊頭皮,並將每一束梳得光滑平順"
+"(1)","188","毛髮的成長速度每天約(1)0.2~0.5mm(2) 0.2mm (3) 0.01m (4) 3mm"
+"(2)","189","毛髮的生命週期在成長期,毛乳頭不斷供給養分時間約幾年?(1)1~5年(2)2~6年(3)4~8年(4)2~8年。"
+"(2)","190","洗髮時間太短會讓客人覺得馬虎,時間太長又招致客人疲勞厭煩,且傷害髮質,所以洗髮的時間以(1) 3~5 (2) 10~15 (3) 25~30(4)30~40分鐘為最適宜。"
+"(3)","191","患有嚴重頭皮疾病的顧客(1)要(2)拒絕(3)可以(4)不一定為其做美髮服務。"
+"(3)","192","理燙髮從業人員發現顧客患有(1)心臟病(2)精神病(3)傳染性皮膚病(4)胃腸病者應予拒絕服務"
+"(2)","193","理燙美髮從業人員應接受定期健康檢查(1)每半年一次(2)每年一次(3)每二年一次(4)就業時檢查一次就可以"
+"(2)","194","我國的吹風機所採用電壓為(1)100V (2) 110V (3) 200V (4) 220V"
+"(2)","195","具有破壞毛髮組織作用的髮品是(1)洗髮劑(2)燙髮、染髮劑(3)營養劑(4)髮膠"
+"(1)","196","分髮時可使用(1)尖尾梳(2)S型梳(3)大齒梳(4)齒形梳。"
+"(4)","197","潮濕的毛髮,使用熱度達攝氏(1)25度(2)35度(3)45度(4)55度則角蛋白質開始變化"
+"(2)","198","有效的吹出線條髮型的梳子是(1)九排梳(2)排骨梳(3)圓梳(4)小板梳。"
+"(3)","199","任何髮型的剪法都需先設定(1)中心線(2)水平線(3)引導線(4)側中線。"
+"(1)","200","若要剪出凹狀瀏海時把頭髮拉往(1)中間(2)左側(3)右側(4)左右兩側剪。"
+"(3)","201","對受傷部位較大,且肢體粗細不等時,應用(1)托臂法(2)八字形包紮法(3)螺旋形包紮法(4)環狀包紮法來包紮。"
+"(1)","202","照射紅外線時為什麼要替顧客戴眼罩(1)防止強烈的光線直接照射(2)燈的顏色關係(3)習慣問題(4)防熱作用。"
+"(1)","203","烹調下列何種蔬菜,容易有變色的現象?(1)茄子(2)地瓜(3)胡蘿蔔(4)茭白筍。"
+"(2)","204","油的沸騰溫度比水的沸騰溫度?(1)無法比較(2)高(3)低(4)一樣。"
+"(3)","205","屬於春季盛產的蔬菜是(1)麻竹筍(2)蓮藕(3)百合(4)大白菜"
+"(1)","206","選購蛤蜊應選外殼(1)緊閉(2)微開(3)張開(4)粗糙者。"
+"(2)","207","下列何處沒有毛髮?(1)皮膚(2)嘴唇(3)頭皮(4)下巴"
+"(3)","208","最理想的皮膚類型是(1)混合性皮膚(2)乾性皮膚(3)中性皮膚(4)油性皮膚。"
+"(1)","209","下列何者是皮膚老化的現象之一(1)皮膚乾燥(2)有光澤(3)油脂分泌多(4)有彈性。"
+"(2)","210","皮膚對於冷、熱、碰觸有反應,因為它有(1)血液(2)神經(3)淋巴液(4)汗腺及皮脂腺。"
+"(3)","211","依化妝品衛生管理條例規定,化妝品包裝必須刊載(1)商標(2)規格(3)成份(4)售價"
+"(2)","212","標準的眉毛位置應在(1)額頭的1/2處(2)額頭1/3處(3)額頭1/4處(4)額頭1/5處。"
+"(4)","213","乾燥肌膚在飲食建議哪種營養素,以保持皮膚柔軟健康?(1)維生素C(2)維生素E(3)維生素D(4)維生素B群及維生素E。"
+"(2)","214","洗手的效果下列何者最佳?(1)沖洗(2)沖洗後,抹肥皂再沖洗(3)用水盆來洗手(4)共用水盆洗手。"
+"(2)","215","乾性肌膚的主要特徵之一是(1)油分多(2)水分少(3)紋路粗(4)毛孔大。"
+"(3)","216","皮膚最外面的保護層稱為(1)真皮(2)脂肪組織(3)表皮(4)皮下組織。"
+"(3)","217","皮脂腺的分佈,那個部位最少?(1)額部(2)兩頰(3)四肢(4)鼻"
+"(4)","218","顧客皮膚保養時,其隨身的貴重首飾最好是(1)為顧客取下(2)戴著無妨(3)戴首飾部位勿去碰它(4)請顧客自行取下。"
+"(1)","219","有抑制神經或肌肉機能亢進之效果是(1)指壓法(2)扣打法(3)顫動法(4)揉撚法。"
+"(4)","220","洗髮前按摩之目的是(1)提昇洗髮技術(2)使洗髮享受化(3)提升服務品質(4)以上皆是。"
+"(3)","221","過度的使用強鹼洗髮精來洗頭髮會使頭髮(1)更強壯(2)更潤滑(3)更乾燥(4)更柔軟。"
+"(4)","222","編髮之注意事項為(1)頭髮梳順,力量均勻(2)底盤大小厚薄一致(3)注意取髮角度(4)以上皆是。"
+"(1)","223","洗髮時較不易損害髮質是用(1)洗髮精(2)清潔劑(3)肥皂(4)沙拉脫。"
+"(4)","224","髮質柔順容易梳理是(1)受損髮質(2)缺乏彈性髮質(3)乾性髮質(4)健康髮質。"
+"(4)","225","何種腮紅畫法,又稱為娃娃妝畫法?(1)成熟感(2)自然感(3)現代感(4)可愛感。"
+"(3)","226","修飾用粉底何種適合用於遮蓋泛紅的膚色?(1)黃色(2)紫色(3)綠色(4)粉紅色。"
+"(1)","227","長形臉服裝領口設計宜選擇(1)圓形領口(2)V形衣領(3)長方形領口(4)低胸領"
+"(2)","228","色彩與T.P.O.的配合中,夜晚在日光燈下宜採用何種色系的化妝?(1)金黃色系(2)粉紅色系(3)灰色系(4)綠色系。"
+"(2)","229","隔離霜劑型的呈現不包括(1)乳狀(2)液狀(3)凝膠狀(4)霜狀"
+"(2)","230","選擇假睫毛時最理想的是比自己原睫毛的長度,再加長多少為宜?(1)0.1公分(2)0.2公分(3)0.3公分(4)0.4公分。"
+"(4)","231","拔眉毛時為減輕疼痛,眉夾或鑷子最好靠近下列哪個部位?(1)眉頭(2)眉尾(3)毛梢(4)毛根。"
+"(4)","232","夏季化妝宜使用何種粉底具防水及耐汗之功能?(1)粉霜(2)粉膏(3)蜜粉(4)水粉餅。"
+"(2)","233","香水不宜擦拭的部位為(1)手肘內側(2)腋下(3)耳後(4)手腕內側。"
+"(3)","234","下列化妝品何種香味維持時間最長?(1)古龍水(2)花露水(3)香精(4)香水。"
+"(2)","235","標準唇型上下唇的厚度比為(1)1:1 (2) 1:1.2 (3) 10.2 (4) 1:0.5。"
+"(4)","236","化妝臉部粉底的選擇,宜與身體何部位進行比對,選出之色調接近?(1)手心(2)手臂(3)手背(4)下顎。"
+"(2)","237","香水化妝品含有何種成分,使用後會危害人體視神經?(1)凡士林(2)甲醇(3)蓖麻油(4)羊毛脂。"
+"(4)","238","標準型臉型其眉毛的眉峰位於何處,自眉頭開始的(1)1/4處(2)1/2處(3)1/3處(4)2/3內側處。"
+"(3)","239","所謂色彩的飽和狀態指的是(1)色相(2)色度(3)彩度(4)彩相"
+"(4)","240","毛髮的顏色有下列哪幾種顏色,何者正確?(1)黑、紫、紅、黃(2)黑、藍、紅、黃(3)黑、綠、紅、黃(4)黑、褐、紅、黃。"
+"(2)","241","下列何種捲法在整髮中是一種沒有方向性的基礎捲法?(1)上鬈(2)直立鬈(3)下鬈(4)夾。"
+"(3)","242","頭癬的病原體下列何者正確?(1)濾過性病毒(2)披衣菌(3)黴菌(4)桿菌。"
+"(2)","243","發生期的毛髮開始長出新生髮約需的時間下列何者正確?(1)2~4星期(2)2~5星期(3)2~4個月(4)2~5個月。"
+"(1)","244","潤絲精的pH值,下列何者正確?(1)酸性(2)強酸性(3)鹼性(4)強鹼性。"
+"(4)","245","下列何種剪法可做打薄,調整髮量,短髮或髮緣線的整理?(1)扭轉剪法(2)滑剪法(3)飛剪法(4)推剪法。"
+"(3)","246","多少的取髮角度,燙後效果呈現平均,自然好梳理?(1) 45° (2) 60° (3) 90° (4) 120°。"
+"(3)","247","下列何者是由髮尾朝向髮根梳的一種技巧?(1)髮梳(2)挑梳(3)逆梳(4)尖尾梳。"
+"(3)","248","滲透型永久性染劑進入皮質層與原來色素粒子結合是什麼作用?(1)物理作用(2)還原作用(3)氧化作用(4)合成作用"
+"(3)","249","標準冷燙底盤大都採用(1)弧型(2)方形(3)長方形(4)三角形適用於任何髮型之冷燙底盤"
+"(2)","250","推剪是要讓短髮厚度平均,利用拿梳子的角度來控制推剪時斜度為多少度的剪法?(1) 15° (2) 45° (3) 60° (4) 90°"
+`;
+
+        let allQuestions = [];
+        
+        // App State
+        let selectedQuestions = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = {}; // { qId: optionIndex }
+        let timerInterval;
+        let elapsedSeconds = 0;
+        let userInfo = { id: '', name: '' };
+        let quizSettings = { count: 50, start: 1, end: 250 };
+
+        // DOM Elements
+        const screens = {
+            home: document.getElementById('home-screen'),
+            quiz: document.getElementById('quiz-screen'),
+            result: document.getElementById('result-screen')
+        };
+        const timerDisplay = document.getElementById('timer-display');
+        const timeValue = document.getElementById('time-value');
+
+        // Initialization
+        window.onload = () => {
+            parseCSVData();
+            setupEventListeners();
+        };
+
+        function parseCSVData() {
+            // Regex to match: "Answer","Number","Question"
+            // Handles cases where Answer is "4" or "(4)"
+            const regex = /"\(?(\d+)\)?","(\d+)","(.*?)"/g;
+            
+            let match;
+            allQuestions = [];
+
+            while ((match = regex.exec(RAW_DATA)) !== null) {
+                const answer = parseInt(match[1]);
+                const id = parseInt(match[2]);
+                const fullText = match[3];
+                
+                // Parse options from question text (looking for (1), (2), etc.)
+                // Pattern matches (1) text (2) text ...
+                const optionParts = fullText.split(/\(\d\)/);
+                
+                if(optionParts.length > 1) {
+                    const questionBody = optionParts[0].trim();
+                    const options = optionParts.slice(1).map(opt => opt.trim());
+                    
+                    // Basic validation to ensure we have options
+                    if (options.length === 4) {
+                        allQuestions.push({
+                            id: id,
+                            answer: answer,
+                            question: questionBody,
+                            options: options
+                        });
+                    }
+                }
+            }
+            
+            // Update UI with loaded count
+            const count = allQuestions.length;
+            document.getElementById('max-q-label').innerText = count;
+            document.getElementById('max-q-label-2').innerText = count;
+            document.getElementById('end-range').value = count;
+            
+            // Show status
+            const statusEl = document.getElementById('loading-status');
+            const totalQEl = document.getElementById('total-q-loaded');
+            if (count > 0) {
+                totalQEl.innerText = count;
+                statusEl.classList.remove('hidden');
+            } else {
+                statusEl.innerText = "題目載入失敗，請檢查資料格式。";
+                statusEl.classList.remove('text-green-600', 'hidden');
+                statusEl.classList.add('text-red-600');
+            }
+        }
+
+        function setupEventListeners() {
+            // Question count buttons
+            document.querySelectorAll('.q-count-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Reset styling
+                    document.querySelectorAll('.q-count-btn').forEach(b => {
+                        b.classList.remove('bg-macaron-green', 'text-white', 'shadow-md');
+                        b.classList.add('text-gray-600');
+                    });
+                    // Apply to clicked
+                    e.target.classList.add('bg-macaron-green', 'text-white', 'shadow-md');
+                    e.target.classList.remove('text-gray-600');
+                    quizSettings.count = parseInt(e.target.dataset.count);
+                });
+            });
+
+            // Select All Range
+            document.getElementById('select-all-btn').addEventListener('click', () => {
+                document.getElementById('start-range').value = 1;
+                document.getElementById('end-range').value = allQuestions.length;
+            });
+
+            // Start Quiz
+            document.getElementById('setup-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                startQuiz();
+            });
+
+            // Navigation
+            document.getElementById('prev-btn').addEventListener('click', () => navigate(-1));
+            document.getElementById('next-btn').addEventListener('click', () => navigate(1));
+            document.getElementById('submit-btn').addEventListener('click', finishQuiz);
+        }
+
+        function startQuiz() {
+            // Validate inputs
+            const sId = document.getElementById('student-id').value.trim();
+            const sName = document.getElementById('student-name').value.trim();
+            const startR = parseInt(document.getElementById('start-range').value);
+            const endR = parseInt(document.getElementById('end-range').value);
+
+            if (!sId || !sName) {
+                alert('請輸入學號和姓名');
+                return;
+            }
+            if (startR < 1 || endR > allQuestions.length || startR > endR) {
+                alert(`請輸入有效的題號範圍 (1-${allQuestions.length})`);
+                return;
+            }
+
+            userInfo = { id: sId, name: sName };
+            quizSettings.start = startR;
+            quizSettings.end = endR;
+
+            // Filter and Randomize
+            const pool = allQuestions.filter(q => q.id >= startR && q.id <= endR);
+            if (pool.length === 0) {
+                alert('此範圍內無題目');
+                return;
+            }
+            
+            // Shuffle pool
+            pool.sort(() => Math.random() - 0.5);
+            
+            // Select N questions
+            selectedQuestions = pool.slice(0, Math.min(quizSettings.count, pool.length));
+            
+            // Reset state
+            currentQuestionIndex = 0;
+            userAnswers = {};
+            elapsedSeconds = 0;
+            
+            // UI Switch
+            screens.home.classList.add('hidden');
+            screens.quiz.classList.remove('hidden');
+            screens.quiz.classList.add('flex');
+            timerDisplay.classList.remove('hidden');
+            
+            // Start Timer
+            startTimer();
+            
+            // Render first question
+            renderQuestion();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+                const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+                timeValue.innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function renderQuestion() {
+            const q = selectedQuestions[currentQuestionIndex];
+            
+            // Update Header
+            document.getElementById('q-current-num').innerText = currentQuestionIndex + 1;
+            document.getElementById('q-total-num').innerText = selectedQuestions.length;
+            document.getElementById('real-q-id').innerText = q.id;
+            
+            // Progress Bar
+            const progress = ((currentQuestionIndex + 1) / selectedQuestions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+
+            // Content
+            document.getElementById('question-text').innerText = q.question;
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((optText, idx) => {
+                const optIdx = idx + 1;
+                const btn = document.createElement('div');
+                btn.className = `option-card w-full p-4 rounded-xl border-2 flex items-center space-x-3 bg-gray-50 hover:bg-macaron-blue hover:border-macaron-blue transition-colors text-lg`;
+                
+                // Check if previously selected
+                if (userAnswers[q.id] === optIdx) {
+                    btn.classList.add('selected');
+                }
+
+                btn.innerHTML = `
+                    <div class="w-8 h-8 flex-shrink-0 rounded-full border-2 border-gray-400 flex items-center justify-center font-bold text-gray-500 bg-white option-circle">
+                        ${optIdx}
+                    </div>
+                    <span class="text-left">${optText}</span>
+                `;
+                
+                btn.addEventListener('click', () => selectOption(q.id, optIdx));
+                optionsContainer.appendChild(btn);
+            });
+
+            // Button Logic
+            document.getElementById('prev-btn').disabled = currentQuestionIndex === 0;
+            
+            const isLast = currentQuestionIndex === selectedQuestions.length - 1;
+            const nextBtn = document.getElementById('next-btn');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            if (isLast) {
+                nextBtn.classList.add('hidden');
+                submitBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+                submitBtn.classList.add('hidden');
+            }
+        }
+
+        function selectOption(qId, optIdx) {
+            userAnswers[qId] = optIdx;
+            // Re-render to show selection
+            const cards = document.querySelectorAll('.option-card');
+            cards.forEach((card, idx) => {
+                if (idx + 1 === optIdx) {
+                    card.classList.add('selected');
+                    card.querySelector('.option-circle').classList.add('bg-macaron-blue', 'text-white', 'border-transparent');
+                } else {
+                    card.classList.remove('selected');
+                    const circle = card.querySelector('.option-circle');
+                    circle.classList.remove('bg-macaron-blue', 'text-white', 'border-transparent');
+                }
+            });
+        }
+
+        function navigate(dir) {
+            currentQuestionIndex += dir;
+            renderQuestion();
+        }
+
+        function finishQuiz() {
+            clearInterval(timerInterval);
+            
+            // Calculate Score
+            let correctCount = 0;
+            selectedQuestions.forEach(q => {
+                if (userAnswers[q.id] === q.answer) {
+                    correctCount++;
+                }
+            });
+            const score = Math.round((correctCount / selectedQuestions.length) * 100);
+
+            // Render Results
+            screens.quiz.classList.add('hidden');
+            screens.quiz.classList.remove('flex');
+            screens.result.classList.remove('hidden');
+            timerDisplay.classList.add('hidden');
+
+            document.getElementById('res-student-id').innerText = userInfo.id;
+            document.getElementById('res-student-name').innerText = userInfo.name;
+            document.getElementById('res-score').innerText = score;
+            document.getElementById('res-time').innerText = timeValue.innerText;
+
+            // Generate Detailed Review
+            const reviewContainer = document.getElementById('review-container');
+            reviewContainer.innerHTML = '';
+
+            selectedQuestions.forEach((q, idx) => {
+                const userAns = userAnswers[q.id];
+                const isCorrect = userAns === q.answer;
+                const statusColor = isCorrect ? 'text-green-600' : 'text-red-500';
+                const statusIcon = isCorrect ? 'fa-check' : 'fa-times';
+                
+                const item = document.createElement('div');
+                item.className = 'border-b border-gray-200 pb-4 no-break';
+                
+                let optionsHtml = '';
+                q.options.forEach((opt, oIdx) => {
+                    const oNum = oIdx + 1;
+                    let colorClass = 'text-gray-600';
+                    let icon = '';
+                    
+                    if (oNum === q.answer) {
+                        colorClass = 'text-green-600 font-bold'; // Correct answer
+                        icon = '<i class="fas fa-check ml-2"></i>';
+                    }
+                    if (oNum === userAns && !isCorrect) {
+                        colorClass = 'text-red-500 line-through'; // Wrong user answer
+                    }
+                    if (oNum === userAns && isCorrect) {
+                        colorClass = 'text-green-600 font-bold bg-green-50 rounded px-2';
+                    }
+
+                    optionsHtml += `<div class="${colorClass} ml-4 p-1">(${oNum}) ${opt} ${icon}</div>`;
+                });
+
+                item.innerHTML = `
+                    <div class="flex gap-2 mb-2">
+                        <span class="font-bold text-gray-400 w-8">${idx + 1}.</span>
+                        <div class="flex-1">
+                            <p class="font-bold text-lg mb-2 text-gray-800">
+                                ${q.question} 
+                                <span class="${statusColor} ml-2 text-sm"><i class="fas ${statusIcon}"></i></span>
+                            </p>
+                            <div class="space-y-1">
+                                ${optionsHtml}
+                            </div>
+                            <div class="mt-2 text-sm text-gray-500">
+                                您的答案: <span class="${isCorrect ? 'text-green-600' : 'text-red-500'} font-bold">${userAns || '未作答'}</span> | 
+                                正確答案: <span class="text-green-600 font-bold">${q.answer}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                reviewContainer.appendChild(item);
+            });
+        }
+
+        // --- Export Functions ---
+
+        function downloadResultsPDF() {
+            // Trigger browser print dialog which has "Save as PDF"
+            window.print();
+        }
+
+        function downloadCSV() {
+            const bom = "\uFEFF"; // Byte Order Mark for UTF-8 in Excel
+            let csvContent = `data:text/csv;charset=utf-8,${bom}`;
+            
+            // Header
+            csvContent += `學號,${userInfo.id}\n`;
+            csvContent += `姓名,${userInfo.name}\n`;
+            csvContent += `測驗日期,${new Date().toLocaleString()}\n`;
+            csvContent += `得分,${document.getElementById('res-score').innerText}\n`;
+            csvContent += `耗時,${document.getElementById('res-time').innerText}\n\n`;
+            
+            // Details
+            csvContent += `題號,題目,選項1,選項2,選項3,選項4,正確答案,您的答案,結果\n`;
+            
+            selectedQuestions.forEach(q => {
+                const userAns = userAnswers[q.id] || 0;
+                const isCorrect = userAns === q.answer ? '正確' : '錯誤';
+                
+                // Escape commas in text
+                const safeText = (txt) => `"${txt.replace(/"/g, '""')}"`;
+                
+                const row = [
+                    q.id,
+                    safeText(q.question),
+                    safeText(q.options[0]),
+                    safeText(q.options[1]),
+                    safeText(q.options[2]),
+                    safeText(q.options[3]),
+                    q.answer,
+                    userAns,
+                    isCorrect
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `測驗結果_${userInfo.name}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
